@@ -1,28 +1,53 @@
 {
   "expo": {
-    "name": "juicy-red-mixed-nuts",
-    "slug": "snack-a727d189-322d-471c-b89b-c4125af97c89",
-    "version": "1.0.0",
+    "name": "Devils Meet",
+    "slug": "devilsmeet",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
+    "scheme": "devilsmeet",
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ]
+    ],
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.devilsmeet.app",
+      "buildNumber": "19",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPhotoLibraryUsageDescription": "We use your photo library to let you upload images to event posts and customize your profile."
+      }
     },
     "android": {
+      "versionCode": 2,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.devilsmeet.app"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "bundler": "metro",
+      "output": "minimal" 
+    },
+    "extra": {
+      "eas": {
+        "projectId": "3e6e717b-d250-4110-a898-31bd4790810a"
+      }
     }
   }
 }

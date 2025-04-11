@@ -3,6 +3,9 @@ import axios from 'axios';
 import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
 import { Alert } from 'react-native';
+import { Linking } from 'react-native';
+import CheckBox from '@react-native-community/checkbox'; 
+
 import {
   SafeAreaView,
   View,
@@ -188,6 +191,37 @@ function MatchScreen({ userId, searchIntent, setActiveTab, setNewMatchTrigger })
     handleSwipe(false);
   };
 
+  const handleReport = () => {
+    if (!currentProfile) {
+      alert('No profile to report');
+      return;
+    }
+  
+    const reasons = ['Harassment', 'Nudity', 'Spam', 'Other'];
+    Alert.alert(
+      'Report Profile',
+      'Why are you reporting this user?',
+      reasons.map((reason) => ({
+        text: reason,
+        onPress: async () => {
+          try {
+            await axios.post('https://devils-meet-backend.onrender.com/api/report', {
+              reporterId: userId,
+              reportedId: currentProfile.user_id,
+              reason,
+            });
+            alert('Thanks for reporting. We’ll look into it.');
+          } catch (err) {
+            console.error('❌ Report error:', err);
+            alert('Failed to submit report');
+          }
+        },
+      })),
+      { cancelable: true }
+    );
+  };
+  
+
   const handleFilterPress = (filterType) => {
     if (filterType === 'Gender') {
       setCurrentOptions(GENDER_OPTIONS);
@@ -322,6 +356,15 @@ function MatchScreen({ userId, searchIntent, setActiveTab, setNewMatchTrigger })
               <Text style={stylesMatchButtons.buttonText}>♥</Text>
             </TouchableOpacity>
           </View>
+          <TouchableOpacity
+            style={{ marginVertical: 10, alignSelf: 'center' }}
+            onPress={handleReport}
+          >
+            <Text style={{ color: '#8B0000', textDecorationLine: 'underline' }}>
+              Report this profile
+            </Text>
+          </TouchableOpacity>
+
         </ScrollView>
       ) : (
         <View
@@ -585,6 +628,45 @@ function ChatScreen({ userId, activeTab, newMatchTrigger, setNewMatchTrigger }) 
               <Text style={{ fontSize: 16, color: '#8B0000' }}>Close</Text>
             </TouchableOpacity>
           </View>
+
+          <TouchableOpacity
+            onPress={() => {
+              Alert.alert(
+                'Block User',
+                `Are you sure you want to block ${openChat?.first_name}?`,
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Block',
+                    style: 'destructive',
+                    onPress: async () => {
+                      try {
+                        await axios.post('https://devils-meet-backend.onrender.com/api/block-user', {
+                          blockerId: userId,
+                          blockedId: openChat.user_id,
+                        });
+
+                        alert(`${openChat?.first_name} has been blocked.`);
+
+                        // Close the modal and remove from match list
+                        setOpenChat(null);
+                        setConversation([]);
+                        setMatches(matches.filter(m => m.user_id !== openChat.user_id));
+                      } catch (err) {
+                        console.error('❌ Block failed', err);
+                        alert('Failed to block user.');
+                      }
+                    }
+                  }
+                ]
+              );
+            }}
+          >
+            <Text style={{ fontSize: 16, color: 'red', marginLeft: 16 }}>
+              🚫 Block User
+            </Text>
+          </TouchableOpacity>
+
 
           {/* Messages */}
           <ScrollView style={{ flex: 1, padding: 16 }}>
@@ -1342,6 +1424,8 @@ export default function App() {
   const [isSigningUp, setIsSigningUp] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [isResendingOtp, setIsResendingOtp] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+
 
   // Show splash for 2 seconds
   useEffect(() => {
@@ -1627,9 +1711,27 @@ useEffect(() => {
               value={confirmPassword}
               onChangeText={setConfirmPassword}
             />
+            
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10, marginBottom: 10 }}>
+              <CheckBox
+                value={agreedToTerms}
+                onValueChange={setAgreedToTerms}
+              />
+              <Text style={{ marginLeft: 8, color: 'white' }}>
+                I agree to the{' '}
+                <Text
+                  style={{ color: '#add8e6', textDecorationLine: 'underline' }}
+                  onPress={() => Linking.openURL('https://devilsmeet.com/terms')}
+                >
+                  Terms of Use
+                </Text>
+              </Text>
+            </View>
+
 
             <TouchableOpacity
-              style={globalStyles.button}
+              style={[globalStyles.button, !agreedToTerms && { backgroundColor: '#AAA' }]}
+              disabled={!agreedToTerms}
               onPress={async () => {
                 console.log('[📬 Sign Up Button] Pressed');
 
@@ -1650,6 +1752,7 @@ useEffect(() => {
                     {
                       email: email.trim(),
                       password: password.trim(),
+                      agreedToTerms: agreedToTerms,
                     }
                   );
 

@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.2",
+    "@react-native-community/checkbox": "^0.5.17",
     "@react-native-picker/picker": "^2.11.0",
     "axios": "^1.8.4",
     "eas-cli": "^16.2.1",

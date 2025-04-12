@@ -1721,7 +1721,7 @@ useEffect(() => {
                 I agree to the{' '}
                 <Text
                   style={{ color: '#add8e6', textDecorationLine: 'underline' }}
-                  onPress={() => Linking.openURL('https://devilsmeet.com/terms')}
+                  onPress={() => Linking.openURL('https://sunnyblaze290.github.io/devilsmeet-terms/')}
                 >
                   Terms of Use
                 </Text>

@@ -1290,6 +1290,8 @@ function GuidedOnboardingScreen({ userId, setScreen, setActiveTab }) {
   const [step, setStep] = useState(0);
   const [inputValue, setInputValue] = useState('');
   const [formData, setFormData] = useState({});
+  const [photos, setPhotos] = useState([]);
+
 
   const questions = [
     { key: 'first_name', label: 'What’s your first name?', type: 'text' },
@@ -1303,6 +1305,7 @@ function GuidedOnboardingScreen({ userId, setScreen, setActiveTab }) {
       'Mary Lou', 'Herberger', 'Sandra', 'University College', 'Ira A. Fulton', 'New College'
     ]},
     { key: 'intent', label: 'What are you open to?', type: 'picker', options: ['Study Partner', 'Friend', 'Date'] },
+    { key: 'photos', label: 'Upload 3 photos to complete your profile', type: 'photo' },
   ];
 
   const current = questions[step];
@@ -1311,6 +1314,18 @@ function GuidedOnboardingScreen({ userId, setScreen, setActiveTab }) {
     const updated = { ...formData, [current.key]: inputValue.trim() };
     setFormData(updated);
     setInputValue('');
+
+    if (current.key === 'photos') {
+      if (photos.length < 3) {
+        alert('Please upload at least 3 photos to complete your profile.');
+        return;
+      }
+      alert('You’re all set!');
+      setActiveTab('profile');
+      setScreen('tabs');
+      return;
+    }
+    
 
     if (step < questions.length - 1) {
       setStep(step + 1);
@@ -1336,6 +1351,50 @@ function GuidedOnboardingScreen({ userId, setScreen, setActiveTab }) {
       }
     }
   };
+  const handleNext = async () => {
+    ...
+  }; // <--- End of handleNext
+  
+  // ✅ Add below this line:
+  const pickImage = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
+      alert('Permission to access photos is required!');
+      return;
+    }
+  
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 1,
+    });
+  
+    if (!result.canceled) {
+      const uri = result.assets[0].uri;
+      const formData = new FormData();
+      formData.append('photo', {
+        uri,
+        name: 'photo.jpg',
+        type: 'image/jpeg',
+      });
+  
+      try {
+        const res = await axios.post(
+          `https://devils-meet-backend.onrender.com/api/upload-photo/${userId}`,
+          formData,
+          {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          }
+        );
+        const uploadedUrl = `https://devils-meet-backend.onrender.com${res.data.photoUrl}`;
+        setPhotos((prev) => [...prev, uploadedUrl]);
+      } catch (err) {
+        console.error('❌ Upload error:', err);
+        alert('Failed to upload photo');
+      }
+    }
+  };
+  
 
   // 💡 FIX: Wrap entire screen in a ScrollView for smoother picks
   return (
@@ -1354,6 +1413,28 @@ function GuidedOnboardingScreen({ userId, setScreen, setActiveTab }) {
     </Text>
 
     {current.type === 'picker' ? (
+
+    ) : current.type === 'photo' ? (
+      <>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }}>
+          {photos.map((uri, idx) => (
+            <Image key={idx} source={{ uri }} style={{ width: 100, height: 100, margin: 5 }} />
+          ))}
+        </View>
+        <TouchableOpacity
+          onPress={pickImage}
+          style={{
+            backgroundColor: '#8B0000',
+            padding: 12,
+            marginTop: 20,
+            borderRadius: 8,
+          }}
+        >
+          <Text style={{ color: '#FFF', textAlign: 'center' }}>Add Photo</Text>
+        </TouchableOpacity>
+      </>
+
+
       <Picker
         selectedValue={inputValue}
         onValueChange={(val) => setInputValue(val)}
@@ -1394,7 +1475,7 @@ function GuidedOnboardingScreen({ userId, setScreen, setActiveTab }) {
         alignSelf: 'center',
       }}
       onPress={handleNext}
-      disabled={!inputValue.trim()}
+      disabled={current.type !== 'photo' ? !inputValue.trim() : false}
     >
       <Text style={{ color: '#FFF', fontSize: 16, fontWeight: 'bold' }}>OK</Text>
     </TouchableOpacity>

@@ -1312,7 +1312,7 @@ function GuidedOnboardingScreen({ userId, setScreen, setActiveTab }) {
 
   const handleNext = async () => {
     const updated = { ...formData, [current.key]: inputValue.trim() };
-    setFormData(updated);
+    setFormData(updated); 
     setInputValue('');
 
     if (current.key === 'photos') {
@@ -1320,21 +1320,43 @@ function GuidedOnboardingScreen({ userId, setScreen, setActiveTab }) {
         alert('Please upload at least 3 photos to complete your profile.');
         return;
       }
-      alert('You’re all set!');
-      setActiveTab('profile');
-      setScreen('tabs');
+    
+      const finalData = { ...updated, photos };
+      setFormData(finalData); // ✅ Save the correct formData
+
+    
+      try {
+        await axios.put(`https://devils-meet-backend.onrender.com/api/users/${userId}`, {
+          ...finalData,
+          age: parseInt(finalData.age || '0', 10),        
+          tagline: 'Looking to meet new people!',
+          location: 'Tempe',
+          university: 'ASU',
+          religion: 'None',
+          hometown: 'Phoenix',
+        });
+    
+        alert('You’re all set!');
+        setActiveTab('profile');
+        setScreen('tabs');
+      } catch (err) {
+        console.error('❌ Failed onboarding:', err);
+        alert('Something went wrong. Try again.');
+      }
       return;
     }
+    
     
 
     if (step < questions.length - 1) {
       setStep(step + 1);
+      setInputValue('');
     } else {
       // Final step => Save data to server
       try {
         await axios.put(`https://devils-meet-backend.onrender.com/api/users/${userId}`, {
           ...updated,
-          age: parseInt(updated.age),
+          age: parseInt(updated.age || '0', 10),        
           tagline: 'Looking to meet new people!',
           location: 'Tempe',
           university: 'ASU',
@@ -1409,56 +1431,58 @@ function GuidedOnboardingScreen({ userId, setScreen, setActiveTab }) {
       {current.label}
     </Text>
 
-    {current.type === 'picker' ? (
+    {current.type === 'picker' && (
+  <Picker
+    selectedValue={inputValue}
+    onValueChange={(val) => setInputValue(val)}
+    style={{ width: '100%', height: 50, marginBottom: 20 }}
+  >
+    <Picker.Item label={`Select ${current.key}`} value="" />
+    {current.options.map((opt) => (
+      <Picker.Item key={opt} label={opt} value={opt} />
+    ))}
+  </Picker>
+)}
 
-    ) : current.type === 'photo' ? (
-      <>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }}>
-          {photos.map((uri, idx) => (
-            <Image key={idx} source={{ uri }} style={{ width: 100, height: 100, margin: 5 }} />
-          ))}
-        </View>
-        <TouchableOpacity
-          onPress={pickImage}
-          style={{
-            backgroundColor: '#8B0000',
-            padding: 12,
-            marginTop: 20,
-            borderRadius: 8,
-          }}
-        >
-          <Text style={{ color: '#FFF', textAlign: 'center' }}>Add Photo</Text>
-        </TouchableOpacity>
-      </>
+{current.type === 'photo' && (
+  <>
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }}>
+      {photos.map((uri, idx) => (
+        <Image key={idx} source={{ uri }} style={{ width: 100, height: 100, margin: 5 }} />
+      ))}
+    </View>
+    <TouchableOpacity
+      onPress={pickImage}
+      style={{
+        backgroundColor: '#8B0000',
+        padding: 12,
+        marginTop: 20,
+        borderRadius: 8,
+      }}
+    >
+      <Text style={{ color: '#FFF', textAlign: 'center' }}>Add Photo</Text>
+    </TouchableOpacity>
+  </>
+)}
 
+{current.type === 'text' && (
+  <TextInput
+    style={{
+      width: '100%',
+      height: 50,
+      borderWidth: 1,
+      borderColor: '#CCC',
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      fontSize: 16,
+      marginBottom: 20,
+    }}
+    value={inputValue}
+    onChangeText={setInputValue}
+    placeholder="Type here..."
+  />
+)}
 
-      <Picker
-        selectedValue={inputValue}
-        onValueChange={(val) => setInputValue(val)}
-        style={{ width: '100%', height: 50, marginBottom: 20 }}
-      >
-        <Picker.Item label={`Select ${current.key}`} value="" />
-        {current.options.map((opt) => (
-          <Picker.Item key={opt} label={opt} value={opt} />
-        ))}
-      </Picker>
-    ) : (
-      <TextInput
-        style={{
-          width: '100%',
-          height: 50,
-          borderWidth: 1,
-          borderColor: '#CCC',
-          borderRadius: 8,
-          paddingHorizontal: 12,
-          fontSize: 16,
-          marginBottom: 20,
-        }}
-        value={inputValue}
-        onChangeText={setInputValue}
-        placeholder="Type here..."
-      />
-    )}
   </ScrollView>
 
   {/* OK Button placed cleanly above bottom with spacing */}
@@ -1472,7 +1496,11 @@ function GuidedOnboardingScreen({ userId, setScreen, setActiveTab }) {
         alignSelf: 'center',
       }}
       onPress={handleNext}
-      disabled={current.type !== 'photo' ? !inputValue.trim() : false}
+      disabled={
+        (current.type === 'text' && !inputValue.trim()) ||
+        (current.type === 'picker' && !inputValue)
+      }
+      
     >
       <Text style={{ color: '#FFF', fontSize: 16, fontWeight: 'bold' }}>OK</Text>
     </TouchableOpacity>

@@ -1351,9 +1351,6 @@ function GuidedOnboardingScreen({ userId, setScreen, setActiveTab }) {
       }
     }
   };
-  const handleNext = async () => {
-    ...
-  }; // <--- End of handleNext
   
   // ✅ Add below this line:
   const pickImage = async () => {

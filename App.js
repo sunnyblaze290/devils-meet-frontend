@@ -5,6 +5,10 @@ import { Picker } from '@react-native-picker/picker';
 import { Alert } from 'react-native';
 import { Linking } from 'react-native';
 import CheckBox from '@react-native-community/checkbox'; 
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
+import Constants from 'expo-constants';
+
 
 import {
   SafeAreaView,
@@ -160,7 +164,27 @@ function MatchScreen({ userId, searchIntent, setActiveTab, setNewMatchTrigger })
       });
 
       if (res.data.match) {
-        alert(`🔥 It’s a match with ${currentProfile.name}!`);
+            alert(`🔥 It’s a match with ${currentProfile.name}!`);
+
+      // Trigger push notification to matched user
+      try {
+        await fetch('https://exp.host/--/api/v2/push/send', {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'Accept-encoding': 'gzip, deflate',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            to: res.data.receiverToken,  // 👈 This should be sent back from backend
+            sound: 'default',
+            title: '🔥 New Match!',
+            body: `You and ${currentProfile.name} just matched. Say hi!`,
+          }),
+        });
+      } catch (err) {
+        console.error('❌ Failed to send push:', err);
+      }
         // After alert and before switching tabs
         await axios.get(`https://devils-meet-backend.onrender.com/api/likes/${userId}`); 
 
@@ -1543,6 +1567,23 @@ export default function App() {
     }
   }, [screen]);
 
+  const [expoPushToken, setExpoPushToken] = useState('');
+
+  useEffect(() => {
+    registerForPushNotificationsAsync().then(token => {
+      if (token) {
+        setExpoPushToken(token);
+        if (userId) {
+          axios.post(`https://devils-meet-backend.onrender.com/api/save-push-token`, {
+            userId,
+            token,
+          }).catch(err => console.error('❌ Failed to save push token:', err));
+        }
+      }
+    });
+  }, [userId]);
+
+
   // 🔄 If userId is null while in tabs, go to login
 useEffect(() => {
   if (!userId && screen === 'tabs') {
@@ -2032,6 +2073,30 @@ useEffect(() => {
 
   return <View style={{ flex: 1 }}>{renderScreen()}</View>;
 }
+
+async function registerForPushNotificationsAsync() {
+  if (!Device.isDevice) {
+    alert('Must use physical device for Push Notifications');
+    return null;
+  }
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+  if (existingStatus !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+  if (finalStatus !== 'granted') {
+    alert('Failed to get push token for push notification!');
+    return null;
+  }
+
+  const tokenData = await Notifications.getExpoPushTokenAsync({
+    projectId: Constants.expoConfig.extra.eas.projectId, // or just `Constants.expoConfig.extra.eas.projectId` if you're using EAS
+  });
+
+  return tokenData.data;
+}
+
 
 /* -----------------------------------------------------
    GLOBAL STYLES

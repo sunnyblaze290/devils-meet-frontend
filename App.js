@@ -6,6 +6,13 @@ import { Alert } from 'react-native';
 import { Linking } from 'react-native';
 import CheckBox from '@react-native-community/checkbox'; 
 import * as Notifications from 'expo-notifications';
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 
@@ -167,24 +174,8 @@ function MatchScreen({ userId, searchIntent, setActiveTab, setNewMatchTrigger })
             alert(`🔥 It’s a match with ${currentProfile.name}!`);
 
       // Trigger push notification to matched user
-      try {
-        await fetch('https://exp.host/--/api/v2/push/send', {
-          method: 'POST',
-          headers: {
-            Accept: 'application/json',
-            'Accept-encoding': 'gzip, deflate',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            to: res.data.receiverToken,  // 👈 This should be sent back from backend
-            sound: 'default',
-            title: '🔥 New Match!',
-            body: `You and ${currentProfile.name} just matched. Say hi!`,
-          }),
-        });
-      } catch (err) {
-        console.error('❌ Failed to send push:', err);
-      }
+      console.log('✅ Match notification handled by backend');
+
         // After alert and before switching tabs
         await axios.get(`https://devils-meet-backend.onrender.com/api/likes/${userId}`); 
 
